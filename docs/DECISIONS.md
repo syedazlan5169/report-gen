@@ -1,0 +1,22 @@
+# Decisions
+
+- Each user owns one independent report configuration.
+- V1 has one logical base group per user.
+- Base membership is stored with `staff.is_base_member`.
+- V1 does not have a `base_groups` table or membership pivot table.
+- Staff `short_code` values are trimmed, stored uppercase, and unique per user.
+- Staff `staff_number` values are integers and unique per user, not globally.
+- Staff records use hard delete in V1.
+- Staff are displayed by `short_code` ascending; there is no `sort_order`.
+- Initial staff records are entered manually; real staff data is not seeded for new users.
+- Reports use the current date in `Asia/Kuala_Lumpur`; there is no manual report date picker in the initial workflow.
+- Templates are editable and use safe, controlled placeholders.
+- Fixed template text remains literal template content.
+- The frontend uses Blade, Tailwind CSS, and Alpine.js.
+- No SPA framework is used.
+- Redis, queues, and scheduler workers are excluded from V1.
+- Production targets the VPS architecture documented in `docs/VPS_DEPLOYMENT_PROFILE.md`.
+- Production deployment is deferred until the application foundation and later product modules are complete.
+- Authentication is username-only; usernames are trimmed, stored lowercase, and unique.
+- V1 has no email field, email verification, or email-based password reset.
+- Laravel's built-in Remember me behavior is used. Browser/password-manager autofill is supported, but plaintext passwords are never stored by the application.
