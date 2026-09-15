@@ -24,6 +24,8 @@ Each user owns one independent configuration and one logical base group. There i
 
 Staff records are entered manually by each user. `short_code` is normalized to uppercase and is unique per user. `staff_number` is stored as an integer and is unique per user. V1 uses hard delete and displays staff by `short_code` ascending; there is no `sort_order`.
 
+Shift records are entered manually by each user. `code` is trimmed, stored lowercase, and unique per user. `display_name` is retained for readable labels. `start_time` and `end_time` are database time columns; overnight shifts such as `22:00` to `07:00` are valid. V1 uses hard delete and displays shifts by `start_time`, then `code`; there is no `sort_order`.
+
 ## Technology
 
 - PHP 8.4-compatible Laravel application

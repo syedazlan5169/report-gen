@@ -22,6 +22,11 @@ class User extends Authenticatable
         return $this->hasMany(Staff::class);
     }
 
+    public function shifts(): HasMany
+    {
+        return $this->hasMany(Shift::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

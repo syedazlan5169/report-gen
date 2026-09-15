@@ -9,6 +9,13 @@
 - Staff records use hard delete in V1.
 - Staff are displayed by `short_code` ascending; there is no `sort_order`.
 - Initial staff records are entered manually; real staff data is not seeded for new users.
+- Shift `code` values are trimmed, stored lowercase, and unique per user.
+- Shift `display_name` is retained and required for readable user-facing labels.
+- Shift `start_time` and `end_time` use database time columns with no date or timezone conversion.
+- Overnight shifts are valid; `end_time` earlier than `start_time` is not rejected.
+- Shift records use hard delete in V1.
+- Shifts are displayed by `start_time` ascending, then `code` ascending; there is no `sort_order`.
+- Initial shift records are entered manually; real shift data is not seeded for new users.
 - Reports use the current date in `Asia/Kuala_Lumpur`; there is no manual report date picker in the initial workflow.
 - Templates are editable and use safe, controlled placeholders.
 - Fixed template text remains literal template content.
