@@ -3,7 +3,10 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
+
+TrustProxies::at('REMOTE_ADDR');
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(TrustProxies::class);
+
         $middleware->trimStrings([
             fn (Request $request): bool => ($request->isMethod('POST') && $request->is('report-templates'))
                 || ($request->isMethod('PUT') && $request->is('report-templates/*'))

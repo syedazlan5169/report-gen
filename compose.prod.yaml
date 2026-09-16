@@ -1,0 +1,40 @@
+services:
+    app:
+        image: report-gen-app:${RELEASE_ID:?RELEASE_ID is required}
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile.production
+            target: app
+        env_file:
+            - path: ${REPORT_GEN_ENV_FILE:-.env.production}
+              required: true
+        expose:
+            - "9000"
+        volumes:
+            - report-gen-storage:/var/www/html/storage
+        networks:
+            - app
+            - probono-db
+        restart: unless-stopped
+
+    nginx:
+        image: report-gen-nginx:${RELEASE_ID:?RELEASE_ID is required}
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile.production
+            target: nginx
+        depends_on:
+            - app
+        ports:
+            - "127.0.0.1:${REPORT_GEN_HOST_PORT:?REPORT_GEN_HOST_PORT is required}:80"
+        networks:
+            - app
+        restart: unless-stopped
+
+volumes:
+    report-gen-storage:
+
+networks:
+    app:
+    probono-db:
+        external: true
