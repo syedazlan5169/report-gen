@@ -43,3 +43,9 @@
 - Authentication is username-only; usernames are trimmed, stored lowercase, and unique.
 - V1 has no email field, email verification, or email-based password reset.
 - Laravel's built-in Remember me behavior is used. Browser/password-manager autofill is supported, but plaintext passwords are never stored by the application.
+- V1 configuration transfer uses three separate JSON envelopes: `report-gen.staff`, `report-gen.shifts`, and `report-gen.templates`, each with `version: 1` and `items` arrays, and each export is downloaded as `report-gen-{type}-v1.json`.
+- Exported payloads include only portable configuration fields and exclude database IDs, ownership fields, and timestamps; imports are always scoped to the authenticated user and never overwrite existing records.
+- Import validation is atomic: malformed JSON, wrong format/version, unexpected fields, invalid item types, malformed placeholders, and duplicate keys within the uploaded file all abort the whole import with no writes.
+- Existing-account conflicts are skipped, not merged, and the import summary reports counts and the specific skipped labels.
+- Template imports preserve `body` exactly and reassign imported `sort_order` values after the receiving user's maximum so existing template ordering is not disturbed.
+- Import files are intentionally small and limited to `1 MB`; MIME type is not treated as the authority—JSON validity and the envelope contract are the real checks.

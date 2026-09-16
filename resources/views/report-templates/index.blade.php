@@ -24,6 +24,30 @@
                 </div>
             @endif
 
+            @if (session('import-summary'))
+                @php($summary = session('import-summary'))
+                <div class="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-900 ring-1 ring-sky-200">
+                    <p class="font-semibold">Imported {{ $summary['imported'] }} templates.</p>
+                    <p class="mt-1">Skipped {{ $summary['skipped'] }} existing records.</p>
+                    @if (! empty($summary['items']))
+                        <ul class="mt-2 list-disc space-y-1 pl-5">
+                            @foreach ($summary['items'] as $item)
+                                <li>{{ $item['label'] }} — {{ $item['reason'] }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            @endif
+
+            <div class="flex gap-2">
+                <a href="{{ route('report-templates.import.create') }}" class="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
+                    Import
+                </a>
+                <a href="{{ route('report-templates.export') }}" class="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
+                    Export
+                </a>
+            </div>
+
             @if ($templates->isEmpty())
                 <div class="rounded-2xl bg-white p-5 text-sm leading-6 text-slate-600 shadow-sm ring-1 ring-slate-200">
                     No report templates have been added yet.
