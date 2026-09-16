@@ -14,11 +14,7 @@
             @endif
 
             @if ($activeShifts->isNotEmpty())
-                @php
-                    $generateFormAction = route('generator.generate') . ($generatedReports !== [] ? '#generated-reports' : '');
-                @endphp
-
-                <form method="POST" action="{{ $generateFormAction }}" class="space-y-6">
+                <form method="POST" action="{{ route('generator.generate') }}" class="space-y-6">
                     @csrf
 
                     <section class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
@@ -120,6 +116,13 @@
                         </article>
                     @endforeach
                 </div>
+
+                <script id="generated-reports-autoscroll">
+                    document.getElementById('generated-reports')?.scrollIntoView({
+                        behavior: 'auto',
+                        block: 'start',
+                    });
+                </script>
             @endif
         </div>
     </div>

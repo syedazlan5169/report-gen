@@ -286,7 +286,18 @@ class ReportGeneratorTest extends TestCase
         $response->assertSee('Petang', false);
     }
 
-    public function test_generator_successful_submission_targets_generated_reports_anchor(): void
+    public function test_initial_generator_get_does_not_render_generated_reports_autoscroll(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('generator.index', absolute: false));
+
+        $response->assertOk();
+        $response->assertDontSee('id="generated-reports-autoscroll"', false);
+        $response->assertDontSee('scrollIntoView', false);
+    }
+
+    public function test_generator_successful_submission_renders_generated_reports_autoscroll(): void
     {
         $user = User::factory()->create();
         $shift = Shift::factory()->for($user)->create(['is_active' => true]);
@@ -307,11 +318,12 @@ class ReportGeneratorTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('id="generated-reports"', false);
-        $response->assertSee('action="', false);
-        $response->assertSee('#generated-reports', false);
+        $response->assertSee('id="generated-reports-autoscroll"', false);
+        $response->assertSee("document.getElementById('generated-reports')?.scrollIntoView", false);
+        $response->assertSee("behavior: 'auto'", false);
     }
 
-    public function test_generator_validation_errors_do_not_target_generated_reports_anchor(): void
+    public function test_generator_validation_errors_do_not_render_generated_reports_autoscroll(): void
     {
         $user = User::factory()->create();
         $otherUser = User::factory()->create();
@@ -324,7 +336,9 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors(['shift_id']);
-        $response->assertDontSee('#generated-reports', false);
+        $response->assertDontSee('id="generated-reports"', false);
+        $response->assertDontSee('id="generated-reports-autoscroll"', false);
+        $response->assertDontSee('scrollIntoView', false);
     }
 
     public function test_generator_overtime_choices_are_presented_in_natural_short_code_order(): void
