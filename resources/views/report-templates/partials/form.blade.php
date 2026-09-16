@@ -18,7 +18,8 @@
     <p class="text-sm font-medium text-slate-900">Available placeholders</p>
     <div class="flex flex-wrap gap-2">
         @foreach (\App\Support\ReportTemplatePlaceholders::supported() as $placeholder)
-            <code class="rounded bg-white px-2 py-1 text-xs text-slate-700 ring-1 ring-slate-200">{{ '{{'.$placeholder.'}}' }}</code>
+            @php $placeholderToken = '{{'.$placeholder.'}}'; @endphp
+            <code class="rounded bg-white px-2 py-1 text-xs text-slate-700 ring-1 ring-slate-200">{{ $placeholderToken }}</code>
         @endforeach
     </div>
     <p class="text-sm leading-6 text-slate-500">Use a blank order to place this template after existing templates.</p>
