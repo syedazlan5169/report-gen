@@ -14,7 +14,11 @@
             @endif
 
             @if ($activeShifts->isNotEmpty())
-                <form method="POST" action="{{ route('generator.generate') }}" class="space-y-6">
+                @php
+                    $generateFormAction = route('generator.generate') . ($generatedReports !== [] ? '#generated-reports' : '');
+                @endphp
+
+                <form method="POST" action="{{ $generateFormAction }}" class="space-y-6">
                     @csrf
 
                     <section class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
@@ -97,7 +101,7 @@
             @endif
 
             @if ($generatedReports !== [])
-                <div class="space-y-4">
+                <div id="generated-reports" class="scroll-mt-4 space-y-4">
                     @foreach ($generatedReports as $report)
                         <article class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
                             <div class="mb-3 flex items-center justify-between gap-3">

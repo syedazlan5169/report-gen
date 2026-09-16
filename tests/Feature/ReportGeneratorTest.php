@@ -286,6 +286,47 @@ class ReportGeneratorTest extends TestCase
         $response->assertSee('Petang', false);
     }
 
+    public function test_generator_successful_submission_targets_generated_reports_anchor(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        Staff::factory()->for($user)->create(['is_base_member' => true, 'is_active' => true]);
+
+        ReportTemplate::factory()->for($user)->create([
+            'name' => 'Anchor Template',
+            'body' => '{{date}}',
+            'is_enabled' => true,
+            'sort_order' => 1,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'shift_id' => $shift->id,
+            'leave_staff_ids' => [],
+            'overtime_staff_ids' => [],
+        ]);
+
+        $response->assertOk();
+        $response->assertSee('id="generated-reports"', false);
+        $response->assertSee('action="', false);
+        $response->assertSee('#generated-reports', false);
+    }
+
+    public function test_generator_validation_errors_do_not_target_generated_reports_anchor(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $otherShift = Shift::factory()->for($otherUser)->create(['is_active' => true]);
+
+        $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'shift_id' => $otherShift->id,
+            'leave_staff_ids' => [],
+            'overtime_staff_ids' => [],
+        ]);
+
+        $response->assertSessionHasErrors(['shift_id']);
+        $response->assertDontSee('#generated-reports', false);
+    }
+
     public function test_generator_overtime_choices_are_presented_in_natural_short_code_order(): void
     {
         $user = User::factory()->create();
