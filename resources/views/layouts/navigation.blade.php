@@ -21,6 +21,9 @@
                     <x-nav-link :href="route('shifts.index')" :active="request()->routeIs('shifts.*')">
                         {{ __('Shifts') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('report-templates.index')" :active="request()->routeIs('report-templates.*')">
+                        {{ __('Templates') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -81,6 +84,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('shifts.index')" :active="request()->routeIs('shifts.*')">
                 {{ __('Shifts') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('report-templates.index')" :active="request()->routeIs('report-templates.*')">
+                {{ __('Templates') }}
             </x-responsive-nav-link>
         </div>
 

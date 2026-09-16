@@ -12,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->trimStrings([
+            fn (Request $request): bool => ($request->isMethod('POST') && $request->is('report-templates'))
+                || ($request->isMethod('PUT') && $request->is('report-templates/*'))
+                || ($request->isMethod('PATCH') && $request->is('report-templates/*')),
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -27,6 +27,11 @@ class User extends Authenticatable
         return $this->hasMany(Shift::class);
     }
 
+    public function reportTemplates(): HasMany
+    {
+        return $this->hasMany(ReportTemplate::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

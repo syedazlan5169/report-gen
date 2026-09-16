@@ -18,13 +18,15 @@ Authentication is username-only. Usernames are trimmed, normalized to lowercase,
 - `users`
 - `staff`, including `short_code`, `rank_prefix`, integer `staff_number`, `is_base_member`, and `is_active`
 - `shifts`
-- `report_templates`
+- `report_templates`, including plain-text `body`, per-user unique `name`, `is_enabled`, and `sort_order`
 
 Each user owns one independent configuration and one logical base group. There is no `base_groups` table in V1; base membership is stored on `staff.is_base_member`.
 
 Staff records are entered manually by each user. `short_code` is normalized to uppercase and is unique per user. `staff_number` is stored as an integer and is unique per user. V1 uses hard delete and displays staff by `short_code` ascending; there is no `sort_order`.
 
 Shift records are entered manually by each user. `code` is trimmed, stored lowercase, and unique per user. `display_name` is retained for readable labels. `start_time` and `end_time` are database time columns; overnight shifts such as `22:00` to `07:00` are valid. V1 uses hard delete and displays shifts by `start_time`, then `code`; there is no `sort_order`.
+
+Report templates are hard-deleted and displayed by `sort_order` ascending, then `id` ascending. Names are unique per user, while body text is stored exactly as entered. Bodies accept only the fixed V1 placeholders `{{date}}`, `{{day}}`, `{{shift_start}}`, `{{shift_end}}`, `{{shift_time_range}}`, `{{supervisor}}`, `{{working_staff_list}}`, `{{leave_staff_list}}`, `{{overtime_staff_list}}`, and `{{attendance_count}}`. Placeholder syntax is `{{placeholder_name}}`; unsupported or malformed placeholders are rejected. This module only configures templates and does not render or replace them.
 
 ## Technology
 
