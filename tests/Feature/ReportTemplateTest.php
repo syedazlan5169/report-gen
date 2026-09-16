@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\ReportTemplate;
 use App\Models\User;
+use App\Support\ReportTemplatePlaceholders;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class ReportTemplateTest extends TestCase
@@ -269,6 +271,19 @@ class ReportTemplateTest extends TestCase
         $this->assertModelMissing($template);
     }
 
+    public function test_template_forms_render_tappable_placeholder_insertion_controls(): void
+    {
+        $user = User::factory()->create();
+        $template = ReportTemplate::factory()->for($user)->create();
+
+        $this->assertTemplateFormHasPlaceholderInsertionControls(
+            $this->actingAs($user)->get(route('report-templates.create', absolute: false))
+        );
+        $this->assertTemplateFormHasPlaceholderInsertionControls(
+            $this->actingAs($user)->get(route('report-templates.edit', $template, false))
+        );
+    }
+
     /**
      * @return array<string, string>
      */
@@ -280,5 +295,21 @@ class ReportTemplateTest extends TestCase
             'is_enabled' => '1',
             'sort_order' => '1',
         ], $overrides);
+    }
+
+    private function assertTemplateFormHasPlaceholderInsertionControls(TestResponse $response): void
+    {
+        $response->assertSee('<textarea', false);
+        $response->assertSee('name="body"', false);
+        $response->assertSee('x-ref="body"', false);
+        $response->assertSee('Tap a placeholder to insert it at the cursor.', false);
+        $response->assertSee('setRangeText(placeholder, start, end,', false);
+        $response->assertSee("dispatchEvent(new Event('input'", false);
+        $response->assertSee('textarea.focus()', false);
+
+        foreach (ReportTemplatePlaceholders::supported() as $placeholder) {
+            $response->assertSee('<button type="button"', false);
+            $response->assertSee('{{'.$placeholder.'}}', false);
+        }
     }
 }

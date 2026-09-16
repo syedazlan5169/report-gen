@@ -8,21 +8,42 @@
     <x-input-error class="mt-2" :messages="$errors->get('name')" />
 </div>
 
-<div>
-    <x-input-label for="body" :value="__('Template Body')" />
-    <textarea id="body" name="body" rows="16" required class="mt-1 block min-h-80 w-full rounded-xl border-gray-300 font-mono text-sm leading-6 shadow-sm focus:border-sky-500 focus:ring-sky-500">{{ old('body', $template->body) }}</textarea>
-    <x-input-error class="mt-2" :messages="$errors->get('body')" />
-</div>
+<div
+    x-data="{
+        bodyHasFocused: false,
+        insertPlaceholder(placeholder) {
+            const textarea = this.$refs.body;
+            const start = this.bodyHasFocused ? textarea.selectionStart : textarea.value.length;
+            const end = this.bodyHasFocused ? textarea.selectionEnd : textarea.value.length;
 
-<div class="space-y-3 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
-    <p class="text-sm font-medium text-slate-900">Available placeholders</p>
-    <div class="flex flex-wrap gap-2">
-        @foreach (\App\Support\ReportTemplatePlaceholders::supported() as $placeholder)
-            @php $placeholderToken = '{{'.$placeholder.'}}'; @endphp
-            <code class="rounded bg-white px-2 py-1 text-xs text-slate-700 ring-1 ring-slate-200">{{ $placeholderToken }}</code>
-        @endforeach
+            textarea.setRangeText(placeholder, start, end, 'end');
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            textarea.focus();
+        },
+    }"
+    class="space-y-5"
+>
+    <div>
+        <x-input-label for="body" :value="__('Template Body')" />
+        <textarea id="body" name="body" rows="16" required x-ref="body" @focus="bodyHasFocused = true" class="mt-1 block min-h-80 w-full rounded-xl border-gray-300 font-mono text-sm leading-6 shadow-sm focus:border-sky-500 focus:ring-sky-500">{{ old('body', $template->body) }}</textarea>
+        <x-input-error class="mt-2" :messages="$errors->get('body')" />
     </div>
-    <p class="text-sm leading-6 text-slate-500">Use a blank order to place this template after existing templates.</p>
+
+    <div class="space-y-3 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+        <div class="space-y-1">
+            <p class="text-sm font-medium text-slate-900">Available placeholders</p>
+            <p class="text-sm leading-6 text-slate-500">Tap a placeholder to insert it at the cursor.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            @foreach (\App\Support\ReportTemplatePlaceholders::supported() as $placeholder)
+                @php $placeholderToken = '{{'.$placeholder.'}}'; @endphp
+                <button type="button" @click="insertPlaceholder(@js($placeholderToken))" class="inline-flex min-h-10 items-center rounded-lg bg-white px-3 py-2 font-mono text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    {{ $placeholderToken }}
+                </button>
+            @endforeach
+        </div>
+        <p class="text-sm leading-6 text-slate-500">Use a blank order to place this template after existing templates.</p>
+    </div>
 </div>
 
 <div>

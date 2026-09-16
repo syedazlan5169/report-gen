@@ -285,4 +285,61 @@ class ReportGeneratorTest extends TestCase
         $response->assertSee('value="'.$overtimeStaff->id.'"', false);
         $response->assertSee('Petang', false);
     }
+
+    public function test_generator_overtime_choices_are_presented_in_natural_short_code_order(): void
+    {
+        $user = User::factory()->create();
+        Shift::factory()->for($user)->create(['is_active' => true]);
+
+        Staff::factory()->for($user)->create(['short_code' => 'A10', 'staff_number' => 1010, 'is_base_member' => false, 'is_active' => true]);
+        Staff::factory()->for($user)->create(['short_code' => 'C1', 'staff_number' => 1001, 'is_base_member' => false, 'is_active' => true]);
+        Staff::factory()->for($user)->create(['short_code' => 'A2', 'staff_number' => 1002, 'is_base_member' => false, 'is_active' => true]);
+        Staff::factory()->for($user)->create(['short_code' => 'A1', 'staff_number' => 1003, 'is_base_member' => false, 'is_active' => true]);
+
+        $orderedShortCodes = $this->actingAs($user)
+            ->get(route('generator.index', absolute: false))
+            ->viewData('overtimeStaff')
+            ->pluck('short_code')
+            ->all();
+
+        $this->assertSame(['A1', 'A2', 'A10', 'C1'], $orderedShortCodes);
+    }
+
+    public function test_generated_overtime_report_list_remains_numeric_staff_number_order(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        Staff::factory()->for($user)->create(['staff_number' => 9000, 'is_base_member' => true, 'is_active' => true]);
+        $higherShortCodeLowerNumber = Staff::factory()->for($user)->create([
+            'short_code' => 'A10',
+            'rank_prefix' => 'PiK',
+            'staff_number' => 120,
+            'name' => 'LOWER NUMBER',
+            'is_base_member' => false,
+            'is_active' => true,
+        ]);
+        $lowerShortCodeHigherNumber = Staff::factory()->for($user)->create([
+            'short_code' => 'A2',
+            'rank_prefix' => 'PiK',
+            'staff_number' => 130,
+            'name' => 'HIGHER NUMBER',
+            'is_base_member' => false,
+            'is_active' => true,
+        ]);
+
+        ReportTemplate::factory()->for($user)->create([
+            'name' => 'Overtime Report',
+            'body' => '{{overtime_staff_list}}',
+            'is_enabled' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'shift_id' => $shift->id,
+            'leave_staff_ids' => [],
+            'overtime_staff_ids' => [$lowerShortCodeHigherNumber->id, $higherShortCodeLowerNumber->id],
+        ]);
+
+        $response->assertOk();
+        $this->assertStringContainsString("1. PiK 120 - LOWER NUMBER\n2. PiK 130 - HIGHER NUMBER", $response->getContent());
+    }
 }

@@ -58,8 +58,9 @@ class ReportGeneratorController extends Controller
             ->staff()
             ->where('is_active', true)
             ->where('is_base_member', false)
-            ->orderBy('staff_number')
-            ->get();
+            ->get()
+            ->sortBy('short_code', SORT_NATURAL)
+            ->values();
 
         $activeShifts = $user
             ->shifts()
