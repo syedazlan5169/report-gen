@@ -4,6 +4,17 @@
 - V1 has one logical base group per user.
 - Base membership is stored with `staff.is_base_member`.
 - V1 does not have a `base_groups` table or membership pivot table.
+- The generator is intentionally transient and does not persist any report history, generated output, attendance records, or saved selections.
+- Daily generator input is limited to `shift_id`, `leave_staff_ids[]`, and `overtime_staff_ids[]`; there is no manual date selector in V1.
+- Report dates are always calculated in `Asia/Kuala_Lumpur` using the current day, with the date formatted as `DD/MM/YYYY` and the Malay uppercase weekday name derived deterministically.
+- Overtime is restricted to active non-base staff in V1; active base members are always considered working by default unless selected in the leave group.
+- Working base staff are derived as active base members minus selected leave staff; leave members are excluded from attendance and supervisor selection.
+- Attendance is calculated as working base count plus overtime count; leave staff and the supervisor are never counted twice.
+- Staff lists are sorted numerically by `staff_number`, while display output uses `{rank_prefix} {staff_number} - {name}` and plain-text numbered lists.
+- Supervisor selection compares numeric `staff_number` only; rank prefixes do not affect selection. If no working staff exist, `{{supervisor}}` renders as `-`.
+- Placeholder rendering uses a fixed literal replacement map with `strtr`-style substitution only; no Blade, PHP exec, or generic template engine is used.
+- Enabled templates are rendered in `sort_order`, then `id` order, and disabled templates are skipped without error.
+- Login redirects to the generator screen so `/dashboard` becomes a redirect and the app’s primary daily screen is the generator.
 - Staff `short_code` values are trimmed, stored uppercase, and unique per user.
 - Staff `staff_number` values are integers and unique per user, not globally.
 - Staff records use hard delete in V1.

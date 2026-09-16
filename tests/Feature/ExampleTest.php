@@ -10,13 +10,11 @@ class ExampleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_authenticated_users_can_view_the_placeholder_landing_page(): void
+    public function test_authenticated_users_are_redirected_to_the_generator_from_dashboard(): void
     {
         $response = $this->actingAs(User::factory()->create())->get('/dashboard');
 
-        $response->assertStatus(200);
-        $response->assertSee('Report Generator');
-        $response->assertSee('Report generation functionality will be added next.');
+        $response->assertRedirect('/generator');
     }
 
     public function test_guests_are_redirected_to_login_from_the_landing_page(): void

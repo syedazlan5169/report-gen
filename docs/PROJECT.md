@@ -22,6 +22,12 @@ Authentication is username-only. Usernames are trimmed, normalized to lowercase,
 
 Each user owns one independent configuration and one logical base group. There is no `base_groups` table in V1; base membership is stored on `staff.is_base_member`.
 
+## Generator V1 contract
+
+The daily report workflow is intentionally transient and does not create any new database tables or persisted history. The authenticated user selects one active shift, optional leave staff (active base members only), and optional overtime staff (active non-base members only). Reports are generated from the current date in `Asia/Kuala_Lumpur`, with no manual date input in V1. The working base group is every active base member minus selected leave staff; overtime adds additional active non-base staff. Attendance is computed as working base count plus overtime count, while leave staff are excluded. The supervisor is the active working person with the lowest numeric `staff_number`, regardless of rank prefix, and if no working staff exist the supervisor renders as `-` rather than blocking generation.
+
+The generator renders all enabled templates for the current user in `sort_order`, then `id` order. Templates remain plain text and are rendered with a literal placeholder map: supported placeholder names are replaced exactly, while literal template text remains untouched. The generator route is the primary daily screen; authenticated users land on `/generator`, and the existing `/dashboard` route redirects to that screen so the default auth flow still works without rewriting the Breeze login flow.
+
 Staff records are entered manually by each user. `short_code` is normalized to uppercase and is unique per user. `staff_number` is stored as an integer and is unique per user. V1 uses hard delete and displays staff by `short_code` ascending; there is no `sort_order`.
 
 Shift records are entered manually by each user. `code` is trimmed, stored lowercase, and unique per user. `display_name` is retained for readable labels. `start_time` and `end_time` are database time columns; overnight shifts such as `22:00` to `07:00` are valid. V1 uses hard delete and displays shifts by `start_time`, then `code`; there is no `sort_order`.
