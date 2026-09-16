@@ -50,12 +50,15 @@ Assessment:
 - Public key auth: enabled
 - Password auth: enabled
 - Operational convention: SSH access is direct to the host; root access is available, but the server is also used with a named user (`admin-syedazlan`) and `sudo -n` for elevated read-only actions
+- Deployment user: `admin-syedazlan`
+- The deploy user is in `sudo` but not in the `docker` group, so routine Docker commands require `sudo docker ...`
 
 Relevant convention:
 
 - `SSH_ALIAS=vps-probono-apps`
-- `DEPLOY_USER` is not a fixed dedicated application user for this audit, but the host is clearly managed directly by a system admin account rather than through an orchestrator-controlled service account
+- `DEPLOY_USER` is the system admin account used for host operations and deployment work
 - `SUDO_REQUIRED_FOR_DOCKER=YES` for privileged Docker inspection and management commands
+- Checkout ownership is not uniformly delegated to a non-root deployment user; in current practice, `/opt/<project>` checkouts may be root-owned and deployment commands that need Git inside that path use `sudo git -C /opt/<project> ...`
 
 ## 6. Network Topology
 
@@ -75,10 +78,18 @@ Default route:
 Observed listening ports (host-level):
 
 - 22/tcp — SSH
-- 80/tcp — Nginx
-- 443/tcp — Nginx TLS terminator
-- 127.0.0.1:8081/tcp — Dockerized app proxy entrypoint for the current job
+- 80/tcp — host Nginx HTTP listener
+- 443/tcp — host Nginx HTTPS listener
+- 127.0.0.1:8081/tcp — current `zb-examine` public app entrypoint
+- 127.0.0.1:8082/tcp — current `report-gen` public app entrypoint
 - systemd-resolved also listens on localhost DNS ports
+
+Current public ingress pattern:
+
+- Host Nginx owns 80 and 443.
+- Each app is exposed through a localhost-only high port published by its Docker Nginx container, then reverse-proxied by host Nginx to `127.0.0.1:<high-port>`.
+- PHP-FPM application containers are not directly exposed on host ports.
+- New applications should not add new `default_server` listeners; the current host Nginx already has default-server ownership and future sites should use `server_name`-specific blocks only.
 
 ## 7. Firewall
 
@@ -129,6 +140,20 @@ Docker resource summary:
 
 Observed running containers:
 
+- `report-gen-nginx-1`
+  - Image: `report-gen-nginx:932fae9`
+  - Role: app-facing Docker Nginx reverse proxy
+  - Published host port: `127.0.0.1:8082->80/tcp`
+  - Network: `report-gen_app`
+  - Status: healthy / running
+
+- `report-gen-app-1`
+  - Image: `report-gen-app:932fae9`
+  - Role: PHP-FPM runtime for Laravel app
+  - Internal port: `9000/tcp`
+  - Networks: `report-gen_app` and `probono-db`
+  - Status: healthy / running
+
 - `zb-examine-prod-nginx-1`
   - Image: `zb-examine-nginx:<release-sha>`
   - Role: reverse proxy / static asset frontend for the app
@@ -139,7 +164,7 @@ Observed running containers:
 - `zb-examine-prod-app-1`
   - Image: `zb-examine-app:<release-sha>`
   - Role: PHP-FPM runtime for Laravel app
-  - Internal port: 9000/tcp
+  - Internal port: `9000/tcp`
   - Networks: `zb-examine-prod_default` and `probono-db`
   - Health check: healthy
 
@@ -162,15 +187,15 @@ Observed running containers:
   - Network: `zb-examine-prod_default`
   - Volume: `zb-examine-prod_mysql_data`
   - Health check: healthy
-  - Not part of the active production database pattern for `zb-examine`
+  - Not part of the active production database pattern for new projects
 
 Observed topology:
 
 - Internet -> host Nginx -> `127.0.0.1:8081` -> `zb-examine-prod-nginx-1`
-- `zb-examine-prod-nginx-1` uses `fastcgi_pass app:9000`
-- `zb-examine-prod-app-1` connects to both the app network and the shared DB network
-- The active production database architecture is the shared MySQL service on `probono-db` with hostname/alias `probono-mysql`
-- The `zb-examine-prod-db-1` container is a retained legacy/orphan object and should not be treated as the desired database architecture for new projects
+- Internet -> host Nginx -> `127.0.0.1:8082` -> `report-gen-nginx-1`
+- Application containers connect to their local app network and the shared `probono-db` network.
+- The active production database architecture is the shared MySQL service on `probono-db` with hostname/alias `probono-mysql`.
+- The `zb-examine-prod-db-1` container is a retained legacy/orphan object and should not be treated as the desired database architecture for new projects.
 
 ## 11. Docker Networks
 
@@ -264,13 +289,18 @@ Convention for future domains:
 
 Applications found in the server’s deployment roots:
 
+- `/opt/report-gen`
+  - Production application deployment currently serving the `report-gen` domain
+  - Production stack uses `compose.prod.yaml`
+  - Host nginx site: `/etc/nginx/sites-available/report-gen`
+  - Host port mapping: `127.0.0.1:8082`
+  - Shared DB convention: `probono-db` and `DB_HOST=probono-mysql`
+
 - `/opt/zb-examine`
-  - Primary production application project observed on this VPS
-  - Modern Laravel app
-  - Production Compose file: `compose.prod.yaml`
-  - Production Dockerfile: `docker/php/Dockerfile.production`
-  - Nginx production config: `docker/nginx/production.conf`
-  - DB convention: uses the shared MySQL infrastructure on the `probono-db` network via `probono-mysql`
+  - Existing production application project on this VPS
+  - Host nginx site: `/etc/nginx/sites-available/zb-examine`
+  - Host port mapping: `127.0.0.1:8081`
+  - Shared DB convention: `probono-db` and `DB_HOST=probono-mysql`
 
 - `/opt/probono-infrastructure/mysql`
   - Shared database infrastructure, not a separate application stack
@@ -279,7 +309,7 @@ Applications found in the server’s deployment roots:
   - Volume: `probono_mysql_data`
   - Backup timer: `probono-mysql-backup.service` and `.timer`
 
-Only one active application project was directly observed in the audited deployment roots. The legacy `zb-examine-prod-db-1` container is not treated as a second application deployment or as the desired production pattern.
+Current production app inventory therefore includes at least two deployed Laravel applications: `report-gen` and `zb-examine`. The legacy `zb-examine-prod-db-1` container is not treated as a second application deployment or as the desired production pattern.
 
 Other notable directories:
 
@@ -358,12 +388,26 @@ Infrastructure observed:
 - Service unit: `probono-mysql-backup.service`
 - Timer schedule: daily at `18:15:00 UTC`
 - Backup script target: `/usr/local/sbin/probono-mysql-backup-scheduled`
+- Backup database allowlist: `/etc/probono-mysql-backup/databases.conf`
+- Validation interface: `/usr/local/sbin/probono-mysql-backup --check`
+- Backup root: `/var/backups/probono-mysql/`
+
+Current allowlist observed:
+
+- `zb_examine`
+- `report_gen_db`
+
+Validation result observed:
+
+- `CONFIGURED_DATABASE_COUNT=2`
+- `BACKUP_CHECK=PASS`
 
 Conventions:
 
 - Backups are scheduled using systemd, not ad hoc cron entries
-- The backup is focused on the shared MySQL infrastructure, which is the main critical data store behind this project
+- The backup is focused on the shared MySQL infrastructure, which is the main critical data store behind the active applications on this VPS
 - The service is designed to run with `User=root` and `UMask=0077`, consistent with secure local backup handling
+- New shared MySQL databases are not automatically backed up; a future app must add its database name to `/etc/probono-mysql-backup/databases.conf` and then run `sudo /usr/local/sbin/probono-mysql-backup --check` to validate the allowlist
 - Exact remote/destination details were not inspected beyond the backup system unit and script location to avoid exposing credentials or backup destinations
 
 ## 20. Scheduled Jobs
@@ -392,21 +436,23 @@ Recommended first places to inspect during troubleshooting:
 
 ## 22. Port Allocation
 
-Authoritative port summary observed:
+Current authoritative port summary observed:
 
 - 22/tcp — SSH, host
-- 80/tcp — Nginx HTTP, host
-- 443/tcp — Nginx HTTPS, host
-- 127.0.0.1:8081/tcp — current Laravel app nginx proxy entrypoint
-- 3306/tcp — MySQL service traffic on Dockerized DB stacks
-- 33060/tcp — MySQL X protocol traffic on Dockerized DB stacks
+- 80/tcp — host Nginx HTTP, public ingress
+- 443/tcp — host Nginx HTTPS, public ingress
+- 127.0.0.1:8081/tcp — `zb-examine` public Docker Nginx entrypoint
+- 127.0.0.1:8082/tcp — `report-gen` public Docker Nginx entrypoint
+- 3306/tcp — shared MySQL service on the `probono-db` network
+- 33060/tcp — MySQL X protocol on the shared MySQL service
 - 9000/tcp — app PHP-FPM, internal to Docker network
 
 Consequence for future projects:
 
-- Do not choose an arbitrary host port for a new app without checking existing container mappings
-- The observed pattern prefers local-only host binding for public-facing app containers, and a reverse proxy at the host level for externally reachable traffic
-- The host-level port 80/443 must remain owned by Nginx
+- Do not choose an arbitrary host port for a new app without checking current `sudo ss -ltnp` output first
+- The current public ingress pattern is host Nginx -> localhost high port -> Docker Nginx -> PHP-FPM; application Docker Nginx containers should bind only to `127.0.0.1:<high-port>`
+- The host-level ports 80/443 remain owned by Nginx and must not be reassigned to application containers
+- Documented allocations are current and operationally observed, not permanent universal rules
 
 ## 23. Deployment Workflow
 
@@ -499,6 +545,8 @@ This is the default recommendation for a new Laravel app to be hosted on this VP
 - Build immutable release-tagged images using a Git SHA or similar unique value
 - Keep TLS termination at the host layer via Nginx and Certbot
 - Treat `/opt/<project>` as the standard app root for production checkout
+- Do not introduce a new `default_server` listener on the host; the current server already has default-server ownership and future apps should define only `server_name`-specific virtual hosts
+- Verify current port allocation with `sudo ss -ltnp` before selecting a new localhost high port
 
 ### RECOMMENDED CONVENTION
 
