@@ -40,6 +40,9 @@
 - Redis, queues, and scheduler workers are excluded from V1.
 - Production targets the VPS architecture documented in `docs/VPS_DEPLOYMENT_PROFILE.md`.
 - Production deployment is deferred until the application foundation and later product modules are complete.
+- Plain `compose.yaml` is local development only; production continues to use `compose.prod.yaml`.
+- Docker development runs Laravel against MySQL while PHPUnit continues to use in-memory SQLite.
+- Composer and npm dependencies live in named Docker volumes and are refreshed only when their lock-file hashes change.
 - Authentication is username-only; usernames are trimmed, stored lowercase, and unique.
 - V1 has no email field, email verification, or email-based password reset.
 - Laravel's built-in Remember me behavior is used. Browser/password-manager autofill is supported, but plaintext passwords are never stored by the application.

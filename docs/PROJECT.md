@@ -42,6 +42,10 @@ Report templates are hard-deleted and displayed by `sort_order` ascending, then 
 - Alpine.js for small client interactions
 - MySQL 8.4 in the production environment
 
+Local development uses the separate plain `compose.yaml` stack: PHP 8.4-FPM,
+Nginx, MySQL 8.4, and Node 22/Vite. Production remains independent and is
+started only with `docker compose -f compose.prod.yaml ...`.
+
 Report generation will use explicit application rules and safe placeholder substitution. It will not use AI or executable user-provided template code.
 
 ## Production target
