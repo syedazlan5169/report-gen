@@ -17,6 +17,18 @@
                 <form method="POST" action="{{ route('generator.generate') }}" class="space-y-6">
                     @csrf
 
+                    @if ($errors->any())
+                        <div class="rounded-2xl bg-red-50 p-4 text-sm text-red-700 ring-1 ring-red-200">
+                            <x-input-error :messages="$errors->all()" />
+                        </div>
+                    @endif
+
+                    <section class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                        <h2 class="mb-3 text-lg font-semibold text-slate-900">Report Date</h2>
+
+                        <input id="report_date" name="report_date" type="date" value="{{ $reportDate }}" class="block min-h-12 w-full rounded-xl border-slate-300 text-base shadow-sm focus:border-sky-500 focus:ring-sky-500" required>
+                    </section>
+
                     <section class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
                         <h2 class="mb-3 text-lg font-semibold text-slate-900">Shift</h2>
 
@@ -84,14 +96,25 @@
                     </section>
 
                     @if ($enabledTemplates->isNotEmpty() && $activeShifts->isNotEmpty())
-                        <button type="submit" class="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-sky-600 px-4 text-base font-semibold text-white shadow-sm transition hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
-                            Generate Reports
-                        </button>
+                        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                            <button type="submit" class="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-sky-600 px-4 text-base font-semibold text-white shadow-sm transition hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+                                Generate Reports
+                            </button>
+                            <a href="{{ route('generator.index') }}" class="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-base font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+                                Clear
+                            </a>
+                        </div>
                     @elseif ($enabledTemplates->isEmpty())
                         <div class="rounded-2xl bg-slate-100 p-4 text-sm text-slate-600 ring-1 ring-slate-200">
                             No enabled report templates.
                             <a href="{{ route('report-templates.index') }}" class="font-semibold underline">Open Templates</a>
                         </div>
+                    @endif
+
+                    @if ($enabledTemplates->isEmpty())
+                        <a href="{{ route('generator.index') }}" class="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-base font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+                            Clear
+                        </a>
                     @endif
                 </form>
             @endif
@@ -108,7 +131,7 @@
                                     @click.prevent="navigator.clipboard ? navigator.clipboard.writeText(text).then(() => { copied = true; setTimeout(() => copied = false, 1200); }) : (() => { const textarea = document.createElement('textarea'); textarea.value = text; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); copied = true; setTimeout(() => copied = false, 1200); })()"
                                     class="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
                                 >
-                                    <span x-text="copied ? 'Copied' : 'Copy'"></span>
+                                    <span x-text="copied ? 'Copied' : 'Copy'">Copy</span>
                                 </button>
                             </div>
 

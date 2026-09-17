@@ -85,6 +85,7 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-16',
             'shift_id' => $shift->id,
             'leave_staff_ids' => [$baseTwo->id],
             'overtime_staff_ids' => [$overtime->id],
@@ -128,6 +129,7 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $shift->id,
             'leave_staff_ids' => [],
             'overtime_staff_ids' => [$overtime->id],
@@ -250,6 +252,7 @@ class ReportGeneratorTest extends TestCase
         $otherStaff = Staff::factory()->for($otherUser)->create(['is_base_member' => true, 'is_active' => true]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $otherShift->id,
             'leave_staff_ids' => [$otherStaff->id],
             'overtime_staff_ids' => [],
@@ -273,6 +276,7 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $shift->id,
             'leave_staff_ids' => [$baseOne->id],
             'overtime_staff_ids' => [$nonBase->id],
@@ -281,6 +285,7 @@ class ReportGeneratorTest extends TestCase
         $response->assertSessionHasErrors(['overtime_staff_ids.0']);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $shift->id,
             'leave_staff_ids' => [$baseOne->id],
             'overtime_staff_ids' => [],
@@ -310,6 +315,7 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $shift->id,
             'leave_staff_ids' => [],
             'overtime_staff_ids' => [],
@@ -357,6 +363,7 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $shift->id,
             'leave_staff_ids' => [],
             'overtime_staff_ids' => [],
@@ -366,6 +373,76 @@ class ReportGeneratorTest extends TestCase
         $response->assertSee('17/09/2026');
         $response->assertSee('KHAMIS');
         $response->assertDontSee('16/09/2026');
+    }
+
+    public function test_initial_generator_get_defaults_report_date_to_kuala_lumpur_today(): void
+    {
+        Date::setTestNow('2026-09-16 17:00:00Z');
+
+        $user = User::factory()->create();
+        Shift::factory()->for($user)->create(['is_active' => true]);
+
+        $response = $this->actingAs($user)->get(route('generator.index', absolute: false));
+
+        $response->assertOk();
+        $response->assertSee('name="report_date"', false);
+        $response->assertSee('value="2026-09-17"', false);
+    }
+
+    public function test_selected_report_date_controls_date_and_day_for_future_date(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        Staff::factory()->for($user)->create(['is_base_member' => true, 'is_active' => true]);
+        ReportTemplate::factory()->for($user)->create([
+            'body' => '{{date}} {{day}}',
+            'is_enabled' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-18',
+            'shift_id' => $shift->id,
+            'leave_staff_ids' => [],
+            'overtime_staff_ids' => [],
+        ]);
+
+        $response->assertOk();
+        $response->assertSee('18/09/2026');
+        $response->assertSee('JUMAAT');
+        $response->assertDontSee('17/09/2026');
+    }
+
+    public function test_selected_report_date_controls_past_date(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        ReportTemplate::factory()->for($user)->create([
+            'body' => '{{date}} {{day}}',
+            'is_enabled' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-15',
+            'shift_id' => $shift->id,
+            'leave_staff_ids' => [],
+            'overtime_staff_ids' => [],
+        ]);
+
+        $response->assertOk();
+        $response->assertSee('15/09/2026');
+        $response->assertSee('SELASA');
+    }
+
+    public function test_invalid_report_date_fails_validation(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '18/09/2026',
+            'shift_id' => 1,
+        ]);
+
+        $response->assertSessionHasErrors('report_date');
     }
 
     public function test_generator_preserves_submitted_form_state_after_generation(): void
@@ -412,6 +489,7 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $shift->id,
             'leave_staff_ids' => [$leaveStaff->id],
             'overtime_staff_ids' => [$overtimeStaff->id],
@@ -419,6 +497,8 @@ class ReportGeneratorTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('name="shift_id"', false);
+        $response->assertSee('name="report_date"', false);
+        $response->assertSee('value="2026-09-17"', false);
         $response->assertSee('value="'.$shift->id.'"', false);
         $response->assertSee('name="leave_staff_ids[]"', false);
         $response->assertSee('value="'.$leaveStaff->id.'"', false);
@@ -439,6 +519,31 @@ class ReportGeneratorTest extends TestCase
         $response->assertDontSee('scrollIntoView', false);
     }
 
+    public function test_initial_generator_get_contains_clear_control(): void
+    {
+        $user = User::factory()->create();
+        Shift::factory()->for($user)->create(['is_active' => true]);
+
+        $response = $this->actingAs($user)->get(route('generator.index', absolute: false));
+
+        $response->assertOk();
+        $response->assertSee('href="'.route('generator.index').'"', false);
+        $response->assertSee('Clear');
+    }
+
+    public function test_clear_target_returns_clean_generator_state(): void
+    {
+        $user = User::factory()->create();
+        Shift::factory()->for($user)->create(['is_active' => true]);
+
+        $response = $this->actingAs($user)->get(route('generator.index'));
+
+        $response->assertOk();
+        $response->assertSee('value="'.now('Asia/Kuala_Lumpur')->format('Y-m-d').'"', false);
+        $response->assertDontSee('id="generated-reports"', false);
+        $response->assertDontSee('scrollIntoView', false);
+    }
+
     public function test_generator_successful_submission_renders_generated_reports_autoscroll(): void
     {
         $user = User::factory()->create();
@@ -453,6 +558,7 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $shift->id,
             'leave_staff_ids' => [],
             'overtime_staff_ids' => [],
@@ -463,6 +569,34 @@ class ReportGeneratorTest extends TestCase
         $response->assertSee('id="generated-reports-autoscroll"', false);
         $response->assertSee("document.getElementById('generated-reports')?.scrollIntoView", false);
         $response->assertSee("behavior: 'auto'", false);
+    }
+
+    public function test_copy_control_has_visible_fallback_and_safe_report_serialization(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $body = "*Laporan*\nTarikh : {{date}}";
+
+        ReportTemplate::factory()->for($user)->create([
+            'name' => 'Copy Template',
+            'body' => $body,
+            'is_enabled' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-18',
+            'shift_id' => $shift->id,
+            'leave_staff_ids' => [],
+            'overtime_staff_ids' => [],
+        ]);
+
+        $response->assertOk();
+        $response->assertSee('type="button"', false);
+        $response->assertSee('x-data="{ copied: false, text:', false);
+        $response->assertSee('>Copy</span>', false);
+        $response->assertSee('Laporan', false);
+        $response->assertSee('navigator.clipboard', false);
+        $response->assertSee('18/09/2026', false);
     }
 
     public function test_generator_validation_errors_do_not_render_generated_reports_autoscroll(): void
@@ -531,6 +665,7 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $shift->id,
             'leave_staff_ids' => [],
             'overtime_staff_ids' => [$lowerShortCodeHigherNumber->id, $higherShortCodeLowerNumber->id],
@@ -565,6 +700,7 @@ class ReportGeneratorTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'report_date' => '2026-09-17',
             'shift_id' => $shift->id,
             'leave_staff_ids' => $leaveStaffIds,
             'overtime_staff_ids' => $overtimeStaffIds,

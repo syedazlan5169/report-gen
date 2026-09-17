@@ -5,7 +5,7 @@ namespace App\Support;
 use App\Models\ReportTemplate;
 use App\Models\Shift;
 use App\Models\Staff;
-use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 class ReportGenerator
@@ -17,7 +17,7 @@ class ReportGenerator
      * @param  Collection<int, ReportTemplate>  $templates
      * @return array<int, array{name: string, body: string}>
      */
-    public function generate(Shift $shift, Collection $baseStaff, Collection $leaveStaff, Collection $overtimeStaff, Collection $templates): array
+    public function generate(Shift $shift, Collection $baseStaff, Collection $leaveStaff, Collection $overtimeStaff, Collection $templates, CarbonImmutable $reportDate): array
     {
         $workingBase = $baseStaff
             ->reject(fn (Staff $staff): bool => $leaveStaff->contains('id', $staff->id))
@@ -28,8 +28,8 @@ class ReportGenerator
         $supervisor = $this->selectSupervisor($workingBase, $workingStaff);
         $attendanceCount = $workingBase->count() + $overtimeStaff->count();
         $placeholders = [
-            '{{date}}' => $this->reportDate(),
-            '{{day}}' => $this->reportDay(),
+            '{{date}}' => $reportDate->format('d/m/Y'),
+            '{{day}}' => $this->reportDay($reportDate),
             '{{shift_start}}' => $this->formatShiftTime($shift->start_time),
             '{{shift_end}}' => $this->formatShiftTime($shift->end_time),
             '{{shift_time_range}}' => $this->formatShiftRange($shift),
@@ -64,12 +64,7 @@ class ReportGenerator
             ?? $workingStaff->first();
     }
 
-    private function reportDate(): string
-    {
-        return Carbon::now('Asia/Kuala_Lumpur')->format('d/m/Y');
-    }
-
-    private function reportDay(): string
+    private function reportDay(CarbonImmutable $reportDate): string
     {
         $dayNames = [
             'AHAD',
@@ -81,7 +76,7 @@ class ReportGenerator
             'SABTU',
         ];
 
-        return $dayNames[Carbon::now('Asia/Kuala_Lumpur')->dayOfWeek];
+        return $dayNames[$reportDate->dayOfWeek];
     }
 
     private function formatShiftTime(?string $time): string

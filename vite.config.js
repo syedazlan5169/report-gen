@@ -16,6 +16,13 @@ export default defineConfig({
         port: vitePort,
         strictPort: true,
         origin: `http://${viteHost}:${vitePort}`,
+        cors: {
+            origin: [
+                /^https?:\/\/localhost(?::\d+)?$/,
+                /^https?:\/\/127\.0\.0\.1(?::\d+)?$/,
+                /^https?:\/\/\[::1\](?::\d+)?$/,
+            ],
+        },
         hmr: {
             host: viteHost,
             port: vitePort,

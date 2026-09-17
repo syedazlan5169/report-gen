@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\GenerateReportRequest;
 use App\Support\ReportGenerator;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -11,7 +12,11 @@ class ReportGeneratorController extends Controller
 {
     public function index(Request $request): View
     {
-        return view('generator.index', $this->viewData($request, null, [], []));
+        $selectedShiftId = $request->old('shift_id');
+        $selectedLeaveIds = array_map('intval', (array) $request->old('leave_staff_ids', []));
+        $selectedOvertimeIds = array_map('intval', (array) $request->old('overtime_staff_ids', []));
+
+        return view('generator.index', $this->viewData($request, $selectedShiftId === null ? null : (int) $selectedShiftId, $selectedLeaveIds, $selectedOvertimeIds, null));
     }
 
     public function generate(GenerateReportRequest $request): View
@@ -19,8 +24,9 @@ class ReportGeneratorController extends Controller
         $selectedShiftId = (int) $request->input('shift_id');
         $selectedLeaveIds = array_map('intval', (array) $request->input('leave_staff_ids', []));
         $selectedOvertimeIds = array_map('intval', (array) $request->input('overtime_staff_ids', []));
+        $reportDate = CarbonImmutable::parse($request->validated()['report_date'], 'Asia/Kuala_Lumpur');
 
-        $viewData = $this->viewData($request, $selectedShiftId, $selectedLeaveIds, $selectedOvertimeIds);
+        $viewData = $this->viewData($request, $selectedShiftId, $selectedLeaveIds, $selectedOvertimeIds, $reportDate);
 
         $shift = $request->user()->shifts()->where('is_active', true)->find($selectedShiftId);
         $baseStaff = $request->user()->staff()->where('is_active', true)->where('is_base_member', true)->orderBy('staff_number')->get();
@@ -30,7 +36,7 @@ class ReportGeneratorController extends Controller
 
         if ($shift !== null && $templates->isNotEmpty()) {
             $generator = new ReportGenerator;
-            $viewData['generatedReports'] = $generator->generate($shift, $baseStaff, $leaveStaff, $overtimeStaff, $templates);
+            $viewData['generatedReports'] = $generator->generate($shift, $baseStaff, $leaveStaff, $overtimeStaff, $templates, $reportDate);
         } else {
             $viewData['generatedReports'] = [];
         }
@@ -43,7 +49,7 @@ class ReportGeneratorController extends Controller
      * @param  array<int, int>  $selectedOvertimeIds
      * @return array<string, mixed>
      */
-    private function viewData(Request $request, ?int $selectedShiftId, array $selectedLeaveIds, array $selectedOvertimeIds): array
+    private function viewData(Request $request, ?int $selectedShiftId, array $selectedLeaveIds, array $selectedOvertimeIds, ?CarbonImmutable $reportDate): array
     {
         $user = $request->user();
 
@@ -84,6 +90,7 @@ class ReportGeneratorController extends Controller
             'selectedShiftId' => $selectedShiftId,
             'selectedLeaveIds' => $selectedLeaveIds,
             'selectedOvertimeIds' => $selectedOvertimeIds,
+            'reportDate' => $reportDate?->format('Y-m-d') ?? $request->old('report_date', CarbonImmutable::now('Asia/Kuala_Lumpur')->format('Y-m-d')),
             'generatedReports' => [],
         ];
     }

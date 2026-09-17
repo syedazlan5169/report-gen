@@ -24,7 +24,7 @@ Each user owns one independent configuration and one logical base group. There i
 
 ## Generator V1 contract
 
-The daily report workflow is intentionally transient and does not create any new database tables or persisted history. The authenticated user selects one active shift, optional leave staff (active base members only), and optional overtime staff (active non-base members only). Reports are generated from the current date in `Asia/Kuala_Lumpur`, with no manual date input in V1. The working base group is every active base member minus selected leave staff; overtime adds additional active non-base staff. Attendance is computed as working base count plus overtime count, while leave staff are excluded. Supervisor priority is the lowest-numbered working base `PiKK`, then the lowest-numbered working `PiKK`, then the lowest-numbered working `PiK`. Other accepted rank prefixes fall back to the lowest-numbered working staff member, and if no staff are working the supervisor renders as `-`.
+The daily report workflow is intentionally transient and does not create any new database tables or persisted history. The authenticated user selects a valid report date (defaulting to the current date in `Asia/Kuala_Lumpur`), one active shift, optional leave staff (active base members only), and optional overtime staff (active non-base members only). The working base group is every active base member minus selected leave staff; overtime adds additional active non-base staff. Attendance is computed as working base count plus overtime count, while leave staff are excluded. Supervisor priority is the lowest-numbered working base `PiKK`, then the lowest-numbered working `PiKK`, then the lowest-numbered working `PiK`. Other accepted rank prefixes fall back to the lowest-numbered working staff member, and if no staff are working the supervisor renders as `-`.
 
 The generator renders all enabled templates for the current user in `sort_order`, then `id` order. Templates remain plain text and are rendered with a literal placeholder map: supported placeholder names are replaced exactly, while literal template text remains untouched. The generator route is the primary daily screen; authenticated users land on `/generator`, and the existing `/dashboard` route redirects to that screen so the default auth flow still works without rewriting the Breeze login flow.
 
@@ -46,7 +46,7 @@ Local development uses the separate plain `compose.yaml` stack: PHP 8.4-FPM,
 Nginx, MySQL 8.4, and Node 22/Vite. Production remains independent and is
 started only with `docker compose -f compose.prod.yaml ...`.
 
-Report generation will use explicit application rules and safe placeholder substitution. It will not use AI or executable user-provided template code.
+Report generation will use explicit application rules and safe placeholder substitution. It will not use AI or executable user-provided template code. The generator defaults to the current report date in `Asia/Kuala_Lumpur`, accepts another valid date, and remains transient without report history.
 
 ## Production target
 

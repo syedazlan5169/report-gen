@@ -18,6 +18,7 @@ class GenerateReportRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'report_date' => ['required', 'date_format:Y-m-d'],
             'shift_id' => ['required', 'integer', 'exists:shifts,id'],
             'leave_staff_ids' => ['sometimes', 'nullable', 'array'],
             'leave_staff_ids.*' => ['integer', 'distinct'],

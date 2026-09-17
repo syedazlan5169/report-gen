@@ -5,8 +5,8 @@
 - Base membership is stored with `staff.is_base_member`.
 - V1 does not have a `base_groups` table or membership pivot table.
 - The generator is intentionally transient and does not persist any report history, generated output, attendance records, or saved selections.
-- Daily generator input is limited to `shift_id`, `leave_staff_ids[]`, and `overtime_staff_ids[]`; there is no manual date selector in V1.
-- Report dates are always calculated in `Asia/Kuala_Lumpur` using the current day, with the date formatted as `DD/MM/YYYY` and the Malay uppercase weekday name derived deterministically.
+- Daily generator input includes `report_date`, `shift_id`, `leave_staff_ids[]`, and `overtime_staff_ids[]`; report date selection remains transient and is not persisted.
+- Report dates default to the current day in `Asia/Kuala_Lumpur`, while users may select any valid past or future date. The date is formatted as `DD/MM/YYYY` and the Malay uppercase weekday name is derived deterministically from that selected date.
 - Overtime is restricted to active non-base staff in V1; active base members are always considered working by default unless selected in the leave group.
 - Working base staff are derived as active base members minus selected leave staff; leave members are excluded from attendance and supervisor selection.
 - Attendance is calculated as working base count plus overtime count; leave staff and the supervisor are never counted twice.
@@ -27,7 +27,7 @@
 - Shift records use hard delete in V1.
 - Shifts are displayed by `start_time` ascending, then `code` ascending; there is no `sort_order`.
 - Initial shift records are entered manually; real shift data is not seeded for new users.
-- Reports use the current date in `Asia/Kuala_Lumpur`; there is no manual report date picker in the initial workflow.
+- Reports use the selected valid report date, defaulting to the current date in `Asia/Kuala_Lumpur`; the generator remains transient and does not persist report dates or generated history.
 - Templates are editable and use safe, controlled placeholders.
 - Fixed template text remains literal template content.
 - Report template names are trimmed and unique per user, while preserving human-friendly capitalization.
