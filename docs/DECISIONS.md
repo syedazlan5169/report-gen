@@ -11,7 +11,7 @@
 - Working base staff are derived as active base members minus selected leave staff; leave members are excluded from attendance and supervisor selection.
 - Attendance is calculated as working base count plus overtime count; leave staff and the supervisor are never counted twice.
 - Staff lists are sorted numerically by `staff_number`, while display output uses `{rank_prefix} {staff_number} - {name}` and plain-text numbered lists.
-- Supervisor selection compares numeric `staff_number` only; rank prefixes do not affect selection. If no working staff exist, `{{supervisor}}` renders as `-`.
+- Supervisor priority is the lowest-numbered working base `PiKK`, then the lowest-numbered working `PiKK`, then the lowest-numbered working `PiK`. Other accepted rank prefixes fall back to the lowest-numbered working staff member; if no working staff exist, `{{supervisor}}` renders as `-`.
 - Placeholder rendering uses a fixed literal replacement map with `strtr`-style substitution only; no Blade, PHP exec, or generic template engine is used.
 - Enabled templates are rendered in `sort_order`, then `id` order, and disabled templates are skipped without error.
 - Login redirects to the generator screen so `/dashboard` becomes a redirect and the app’s primary daily screen is the generator.

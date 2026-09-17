@@ -25,7 +25,7 @@ class ReportGenerator
             ->values();
 
         $workingStaff = $workingBase->merge($overtimeStaff)->sortBy('staff_number')->values();
-        $supervisor = $workingStaff->sortBy('staff_number')->first();
+        $supervisor = $this->selectSupervisor($workingBase, $workingStaff);
         $attendanceCount = $workingBase->count() + $overtimeStaff->count();
         $placeholders = [
             '{{date}}' => $this->reportDate(),
@@ -50,6 +50,18 @@ class ReportGenerator
         }
 
         return $results;
+    }
+
+    /**
+     * @param  Collection<int, Staff>  $workingBase
+     * @param  Collection<int, Staff>  $workingStaff
+     */
+    private function selectSupervisor(Collection $workingBase, Collection $workingStaff): ?Staff
+    {
+        return $workingBase->where('rank_prefix', 'PiKK')->first()
+            ?? $workingStaff->where('rank_prefix', 'PiKK')->first()
+            ?? $workingStaff->where('rank_prefix', 'PiK')->first()
+            ?? $workingStaff->first();
     }
 
     private function reportDate(): string

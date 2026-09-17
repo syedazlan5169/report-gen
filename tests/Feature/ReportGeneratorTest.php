@@ -100,6 +100,148 @@ class ReportGeneratorTest extends TestCase
         $response->assertSee('5');
     }
 
+    public function test_working_base_pikk_supervisor_beats_lower_numbered_overtime_pikk(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        Staff::factory()->for($user)->create([
+            'short_code' => 'B1',
+            'rank_prefix' => 'PiKK',
+            'staff_number' => 12409,
+            'name' => 'BASE SUPERVISOR',
+            'is_base_member' => true,
+            'is_active' => true,
+        ]);
+        $overtime = Staff::factory()->for($user)->create([
+            'short_code' => 'A1',
+            'rank_prefix' => 'PiKK',
+            'staff_number' => 10913,
+            'name' => 'OVERTIME STAFF',
+            'is_base_member' => false,
+            'is_active' => true,
+        ]);
+
+        ReportTemplate::factory()->for($user)->create([
+            'name' => 'Supervisor Report',
+            'body' => '{{supervisor}}',
+            'is_enabled' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'shift_id' => $shift->id,
+            'leave_staff_ids' => [],
+            'overtime_staff_ids' => [$overtime->id],
+        ]);
+
+        $response->assertOk();
+        $this->assertSame('PiKK 12409 - BASE SUPERVISOR', $response->viewData('generatedReports')[0]['body']);
+    }
+
+    public function test_lowest_numbered_working_base_pikk_is_supervisor(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $this->createStaff($user, 'B1', 'PiKK', 12492, 'HIGHER PIKK', true);
+        $this->createStaff($user, 'B2', 'PiKK', 12409, 'LOWER PIKK', true);
+        $this->createStaff($user, 'B3', 'PiK', 10000, 'LOWEST PIK', true);
+
+        $report = $this->generateSupervisorReport($user, $shift);
+
+        $this->assertSame('PiKK 12409 - LOWER PIKK', $report);
+    }
+
+    public function test_base_pikk_on_leave_is_excluded_from_supervisor_priority(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $leaveStaff = $this->createStaff($user, 'B1', 'PiKK', 11000, 'LEAVE PIKK', true);
+        $this->createStaff($user, 'B2', 'PiKK', 12500, 'WORKING PIKK', true);
+
+        $report = $this->generateSupervisorReport($user, $shift, [$leaveStaff->id]);
+
+        $this->assertSame('PiKK 12500 - WORKING PIKK', $report);
+    }
+
+    public function test_lowest_working_pikk_is_supervisor_when_no_base_pikk_is_working(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $this->createStaff($user, 'B1', 'PiK', 13981, 'BASE ONE', true);
+        $this->createStaff($user, 'B2', 'PiK', 16297, 'BASE TWO', true);
+        $lowerOvertime = $this->createStaff($user, 'A1', 'PiKK', 10913, 'LOWER OVERTIME', false);
+        $higherOvertime = $this->createStaff($user, 'A2', 'PiKK', 11800, 'HIGHER OVERTIME', false);
+
+        $report = $this->generateSupervisorReport($user, $shift, [], [$higherOvertime->id, $lowerOvertime->id]);
+
+        $this->assertSame('PiKK 10913 - LOWER OVERTIME', $report);
+    }
+
+    public function test_lowest_working_pik_is_supervisor_when_no_pikk_is_working(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $this->createStaff($user, 'B1', 'PiK', 13981, 'BASE ONE', true);
+        $this->createStaff($user, 'B2', 'PiK', 16297, 'BASE TWO', true);
+        $overtime = $this->createStaff($user, 'A1', 'PiK', 12000, 'OVERTIME PIK', false);
+
+        $report = $this->generateSupervisorReport($user, $shift, [], [$overtime->id]);
+
+        $this->assertSame('PiK 12000 - OVERTIME PIK', $report);
+    }
+
+    public function test_lower_numbered_pik_does_not_beat_working_pikk_for_supervisor(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $this->createStaff($user, 'B1', 'PiK', 10000, 'LOWER PIK', true);
+        $this->createStaff($user, 'B2', 'PiKK', 15000, 'HIGHER PIKK', true);
+
+        $report = $this->generateSupervisorReport($user, $shift);
+
+        $this->assertSame('PiKK 15000 - HIGHER PIKK', $report);
+    }
+
+    public function test_zero_workers_render_empty_supervisor_and_staff_lists(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+
+        $report = $this->generateSupervisorReport(
+            $user,
+            $shift,
+            templateBody: '{{supervisor}}|{{attendance_count}}|{{working_staff_list}}|{{overtime_staff_list}}',
+        );
+
+        $this->assertSame('-|0|-|-', $report);
+    }
+
+    public function test_supervisor_remains_in_normal_staff_list(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $this->createStaff($user, 'B1', 'PiKK', 12409, 'BASE SUPERVISOR', true);
+
+        $report = $this->generateSupervisorReport(
+            $user,
+            $shift,
+            templateBody: "{{supervisor}}\n{{working_staff_list}}",
+        );
+
+        $this->assertSame("PiKK 12409 - BASE SUPERVISOR\n1. PiKK 12409 - BASE SUPERVISOR", $report);
+    }
+
+    public function test_lowest_numbered_other_rank_is_fallback_supervisor(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $this->createStaff($user, 'B1', 'PPN', 13000, 'HIGHER PPN', true);
+        $this->createStaff($user, 'B2', 'PPN', 12000, 'LOWER PPN', true);
+
+        $report = $this->generateSupervisorReport($user, $shift);
+
+        $this->assertSame('PPN 12000 - LOWER PPN', $report);
+    }
+
     public function test_generator_rejects_other_users_shift_and_staff_ids(): void
     {
         $user = User::factory()->create();
@@ -396,5 +538,40 @@ class ReportGeneratorTest extends TestCase
 
         $response->assertOk();
         $this->assertStringContainsString("1. PiK 120 - LOWER NUMBER\n2. PiK 130 - HIGHER NUMBER", $response->getContent());
+    }
+
+    private function createStaff(User $user, string $shortCode, string $rankPrefix, int $staffNumber, string $name, bool $isBaseMember): Staff
+    {
+        return Staff::factory()->for($user)->create([
+            'short_code' => $shortCode,
+            'rank_prefix' => $rankPrefix,
+            'staff_number' => $staffNumber,
+            'name' => $name,
+            'is_base_member' => $isBaseMember,
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * @param  array<int, int>  $leaveStaffIds
+     * @param  array<int, int>  $overtimeStaffIds
+     */
+    private function generateSupervisorReport(User $user, Shift $shift, array $leaveStaffIds = [], array $overtimeStaffIds = [], string $templateBody = '{{supervisor}}'): string
+    {
+        ReportTemplate::factory()->for($user)->create([
+            'name' => 'Supervisor Report',
+            'body' => $templateBody,
+            'is_enabled' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('generator.generate', absolute: false), [
+            'shift_id' => $shift->id,
+            'leave_staff_ids' => $leaveStaffIds,
+            'overtime_staff_ids' => $overtimeStaffIds,
+        ]);
+
+        $response->assertOk();
+
+        return $response->viewData('generatedReports')[0]['body'];
     }
 }
