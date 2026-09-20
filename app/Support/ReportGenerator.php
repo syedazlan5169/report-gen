@@ -26,6 +26,7 @@ class ReportGenerator
 
         $workingStaff = $workingBase->merge($overtimeStaff)->sortBy('staff_number')->values();
         $supervisor = $this->selectSupervisor($workingBase, $workingStaff);
+        $workingBaseWithoutSupervisor = $this->excludeSupervisor($workingBase, $supervisor);
         $attendanceCount = $workingBase->count() + $overtimeStaff->count();
         $placeholders = [
             '{{date}}' => $reportDate->format('d/m/Y'),
@@ -35,6 +36,7 @@ class ReportGenerator
             '{{shift_time_range}}' => $this->formatShiftRange($shift),
             '{{supervisor}}' => $this->formatSupervisor($supervisor),
             '{{working_staff_list}}' => $this->formatStaffList($workingBase),
+            '{{working_staff_nosupervisor_list}}' => $this->formatStaffList($workingBaseWithoutSupervisor),
             '{{leave_staff_list}}' => $this->formatStaffList($leaveStaff),
             '{{overtime_staff_list}}' => $this->formatStaffList($overtimeStaff),
             '{{attendance_count}}' => (string) $attendanceCount,
@@ -62,6 +64,21 @@ class ReportGenerator
             ?? $workingStaff->where('rank_prefix', 'PiKK')->first()
             ?? $workingStaff->where('rank_prefix', 'PiK')->first()
             ?? $workingStaff->first();
+    }
+
+    /**
+     * @param  Collection<int, Staff>  $workingBase
+     * @return Collection<int, Staff>
+     */
+    private function excludeSupervisor(Collection $workingBase, ?Staff $supervisor): Collection
+    {
+        if ($supervisor === null || ! $workingBase->contains('id', $supervisor->id)) {
+            return $workingBase;
+        }
+
+        return $workingBase
+            ->reject(fn (Staff $staff): bool => $staff->id === $supervisor->id)
+            ->values();
     }
 
     private function reportDay(CarbonImmutable $reportDate): string

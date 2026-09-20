@@ -232,6 +232,38 @@ class ReportGeneratorTest extends TestCase
         $this->assertSame("PiKK 12409 - BASE SUPERVISOR\n1. PiKK 12409 - BASE SUPERVISOR", $report);
     }
 
+    public function test_working_staff_nosupervisor_list_excludes_base_supervisor_and_renumbers_staff(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $this->createStaff($user, 'B1', 'PiKK', 12409, 'BASE SUPERVISOR', true);
+        $this->createStaff($user, 'B2', 'PiK', 13913, 'MOHD BASRUL', true);
+        $this->createStaff($user, 'B3', 'PiK', 13981, 'SYED AZLAN', true);
+
+        $report = $this->generateSupervisorReport(
+            $user,
+            $shift,
+            templateBody: "{{working_staff_list}}\n---\n{{working_staff_nosupervisor_list}}",
+        );
+
+        $this->assertSame("1. PiKK 12409 - BASE SUPERVISOR\n2. PiK 13913 - MOHD BASRUL\n3. PiK 13981 - SYED AZLAN\n---\n1. PiK 13913 - MOHD BASRUL\n2. PiK 13981 - SYED AZLAN", $report);
+    }
+
+    public function test_working_staff_nosupervisor_list_renders_dash_when_only_base_supervisor_remains(): void
+    {
+        $user = User::factory()->create();
+        $shift = Shift::factory()->for($user)->create(['is_active' => true]);
+        $this->createStaff($user, 'B1', 'PiKK', 12409, 'BASE SUPERVISOR', true);
+
+        $report = $this->generateSupervisorReport(
+            $user,
+            $shift,
+            templateBody: '{{working_staff_nosupervisor_list}}',
+        );
+
+        $this->assertSame('-', $report);
+    }
+
     public function test_lowest_numbered_other_rank_is_fallback_supervisor(): void
     {
         $user = User::factory()->create();

@@ -33,7 +33,7 @@
 - Report template names are trimmed and unique per user, while preserving human-friendly capitalization.
 - Report template bodies are stored as exact plain text, including whitespace, line breaks, and WhatsApp formatting characters.
 - Report templates use `sort_order` for output sequence, ordered by `sort_order` and then `id`; duplicate order values are allowed.
-- Report template placeholders are limited to `{{date}}`, `{{day}}`, `{{shift_start}}`, `{{shift_end}}`, `{{shift_time_range}}`, `{{supervisor}}`, `{{working_staff_list}}`, `{{leave_staff_list}}`, `{{overtime_staff_list}}`, and `{{attendance_count}}`.
+- Report template placeholders are limited to `{{date}}`, `{{day}}`, `{{shift_start}}`, `{{shift_end}}`, `{{shift_time_range}}`, `{{supervisor}}`, `{{working_staff_list}}`, `{{working_staff_nosupervisor_list}}`, `{{leave_staff_list}}`, `{{overtime_staff_list}}`, and `{{attendance_count}}`.
 - Placeholder syntax is `{{placeholder_name}}`; unsupported and malformed placeholders are rejected during template validation. Report Template Configuration does not render or replace placeholders.
 - The frontend uses Blade, Tailwind CSS, and Alpine.js.
 - No SPA framework is used.

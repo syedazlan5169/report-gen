@@ -15,6 +15,7 @@ class ReportTemplatePlaceholders
         'shift_time_range',
         'supervisor',
         'working_staff_list',
+        'working_staff_nosupervisor_list',
         'leave_staff_list',
         'overtime_staff_list',
         'attendance_count',

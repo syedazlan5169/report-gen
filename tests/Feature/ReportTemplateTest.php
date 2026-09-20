@@ -106,7 +106,7 @@ class ReportTemplateTest extends TestCase
         $user = User::factory()->create();
         $body = implode(' ', array_map(fn (string $placeholder): string => '{{'.$placeholder.'}}', [
             'date', 'day', 'shift_start', 'shift_end', 'shift_time_range', 'supervisor',
-            'working_staff_list', 'leave_staff_list', 'overtime_staff_list', 'attendance_count',
+            'working_staff_list', 'working_staff_nosupervisor_list', 'leave_staff_list', 'overtime_staff_list', 'attendance_count',
         ]));
 
         $response = $this->actingAs($user)->post(route('report-templates.store'), $this->validTemplateData([
