@@ -24,6 +24,14 @@
                     <x-nav-link :href="route('report-templates.index')" :active="request()->routeIs('report-templates.*')">
                         {{ __('Templates') }}
                     </x-nav-link>
+                    @if (Auth::user()->is_admin)
+                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                            {{ __('Users') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.logs.index')" :active="request()->routeIs('admin.logs.*')">
+                            {{ __('Logs') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -88,6 +96,14 @@
             <x-responsive-nav-link :href="route('report-templates.index')" :active="request()->routeIs('report-templates.*')">
                 {{ __('Templates') }}
             </x-responsive-nav-link>
+            @if (Auth::user()->is_admin)
+                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                    {{ __('Users') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.logs.index')" :active="request()->routeIs('admin.logs.*')">
+                    {{ __('Logs') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

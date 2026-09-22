@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\GenerateReportRequest;
+use App\Models\ActivityLog;
 use App\Support\ReportGenerator;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -37,6 +38,12 @@ class ReportGeneratorController extends Controller
         if ($shift !== null && $templates->isNotEmpty()) {
             $generator = new ReportGenerator;
             $viewData['generatedReports'] = $generator->generate($shift, $baseStaff, $leaveStaff, $overtimeStaff, $templates, $reportDate);
+
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => ActivityLog::ACTION_REPORT_GENERATED,
+                'description' => "Shift {$shift->code} on {$reportDate->format('Y-m-d')}",
+            ]);
         } else {
             $viewData['generatedReports'] = [];
         }

@@ -32,6 +32,11 @@ class User extends Authenticatable
         return $this->hasMany(ReportTemplate::class);
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->is_admin;
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -41,6 +46,7 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'is_admin' => 'boolean',
         ];
     }
 }

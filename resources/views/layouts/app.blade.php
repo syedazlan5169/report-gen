@@ -16,6 +16,18 @@
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
+            @if (session('impersonator_id'))
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-amber-950">
+                    <span>Viewing as {{ auth()->user()->username }}</span>
+                    <form method="POST" action="{{ route('impersonate.stop') }}">
+                        @csrf
+                        <button type="submit" class="rounded-lg bg-amber-950 px-3 py-1 text-xs font-semibold text-amber-50 transition hover:bg-amber-900">
+                            Return to admin
+                        </button>
+                    </form>
+                </div>
+            @endif
+
             @include('layouts.navigation')
 
             <!-- Page Heading -->

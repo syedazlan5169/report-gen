@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\ImpersonationController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportGeneratorController;
 use App\Http\Controllers\ReportTemplateController;
@@ -44,6 +47,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('/impersonate/stop', [ImpersonationController::class, 'destroy'])->name('impersonate.stop');
+});
+
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('users', UserController::class)->except(['show']);
+    Route::post('/users/{user}/impersonate', [ImpersonationController::class, 'store'])->name('users.impersonate');
+    Route::get('/logs', [ActivityLogController::class, 'index'])->name('logs.index');
 });
 
 require __DIR__.'/auth.php';

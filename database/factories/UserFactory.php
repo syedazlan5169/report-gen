@@ -27,6 +27,17 @@ class UserFactory extends Factory
             'username' => strtolower(fake()->unique()->userName()),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => fake()->regexify('[A-Za-z0-9]{10}'),
+            'is_admin' => false,
         ];
+    }
+
+    /**
+     * Indicate that the user is an admin.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'is_admin' => true,
+        ]);
     }
 }
